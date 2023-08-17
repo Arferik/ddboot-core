@@ -1,18 +1,22 @@
 import { Request } from 'express';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { InjectLogger, ILogger, Logger } from '@ddboot/log4js';
 import {
   Injectable,
   NestInterceptor,
   CallHandler,
   ExecutionContext,
-  Logger,
 } from '@nestjs/common';
 import { toJSON } from '../utils';
 
 @Injectable()
 export class HttpLoggerInterceptor implements NestInterceptor {
-  private readonly logger = new Logger('interface');
+  private logger: Logger;
+
+  constructor(@InjectLogger() private readonly log4j: ILogger) {
+    this.logger = this.log4j.getLogger('interface');
+  }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const call$ = next.handle();
@@ -26,9 +30,9 @@ export class HttpLoggerInterceptor implements NestInterceptor {
     const requestStart = `${request.ip} ${request.method} <- ${request.url}`;
     this.logger.debug('body: ' + jsonStr);
     const now = Date.now();
-    this.logger.log('req: ' + requestStart);
+    this.logger.info('req: ' + requestStart);
     return call$.pipe(
-      tap(() => this.logger.log('res:' + content + `${Date.now() - now}ms`)),
+      tap(() => this.logger.info('res:' + content + `${Date.now() - now}ms`)),
     );
   }
 }
